@@ -38,3 +38,6 @@ Server: Docker Engine - Community
   Version:          0.18.0
   GitCommit:        fec3683
 ```
+
+Last step that needs to be done is to clone Brett's repo
+available [here](https://github.com/BretFisher/udemy-docker-mastery)
