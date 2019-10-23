@@ -63,3 +63,28 @@ bb4b0b10db3a|nginx|"nginx -g 'daemon of…"|4 minutes ago|Up 3 minutes|0.0.0.0:8
 `docker container rm -f 41b`
 
 - Force the remove of a container
+
+## What happend in 'docker container run'
+
+- Looks for an image locally
+- Looks in Docker Hub
+- Downloads the latest version by default
+- Creates a new container based on the choosen image and prepares to start
+- Gives it a virtual IP on private network inside docker engine
+- Opens [port] on local host and forwards to [port] in container
+
+example of complete command
+
+`docker container run --publish 8080:80 --name webhost -d nginx:1.11 nginx -t`
+
+## Container vs VM's
+
+Containers are
+
+- Just processes
+- Limited to what resources they can access
+- Exit when process stops
+
+After run the container type the following command to see the process
+
+`ps aux | grep mongo`
