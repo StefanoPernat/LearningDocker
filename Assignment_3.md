@@ -9,3 +9,11 @@ both "name" fields show
 
 Ever since Docker Engine 1.11 we can have multiple containers on a created network
 respond to the same DNS address
+
+# Solution
+
+- `docker network create search_net`
+- `docker container run -d --name search_1 --network search_net --network-alias=search elasticsearch:2`
+- `docker container run -d --name search_2 --network search_net --network-alias=search elasticsearch:2`
+- `docker container run --rm --network search_net alpine nslookup search`
+- `docker container run --rm --network search_net curl -s search:9200` - until name changes
