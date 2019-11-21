@@ -1,0 +1,12 @@
+version: '3'
+
+services: 
+  proxy:
+    image: nginx:1.13     # it uses latest version of nginx:1.13.x
+    ports: 
+      - '80:80'           # from port 80 on host to port 80 in container
+    volumes: 
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # volumes that maps nginx.conf to default.conf in read only mode
+  web:
+    image: httpd          # is like httpd:latest
