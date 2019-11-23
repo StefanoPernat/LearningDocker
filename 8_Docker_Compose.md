@@ -71,3 +71,29 @@ services:
   web:
     image: httpd          # is like httpd:latest
 ```
+
+## Compose Adding Image Building
+
+- Compose can also build your custom images.
+- With `docker-compose up` if not found in cache.
+- Also rebuild with `docker-compose build`.
+- Great for complex builds that have lots of vars or build args
+
+```yaml
+version: '2'
+
+# based off compose-sample-2, only we build nginx.conf into image
+# uses sample site from https://startbootstrap.com/template-overviews/agency/
+
+services:
+  proxy:
+    build:
+      context: .
+      dockerfile: nginx.Dockerfile
+    ports:
+      - '80:80'
+  web:
+    image: httpd
+    volumes:
+      - ./html:/usr/local/apache2/htdocs/
+```
