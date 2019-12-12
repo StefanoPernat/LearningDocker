@@ -116,3 +116,150 @@ To upade a node as **manager**
 - Both Limitations can be overcome with
   - Nginx, HAProxy, LB proxy or:
     - Docker enterprise edition
+
+## Swarm Stacks: Production Grade Compose
+
+- Basically is a **compose file** for production of Swarm.
+- Stacks accept compose files as their **declarative definition** for _services_,
+  _networks_ and _volumes_.
+- We will use `docker stack deploy` rather than `docker service create`.
+- Stack manages all those object for us, including overlay network per stack. Adds
+  stack name to start of their name.
+- New `deploy` key in compose file, when we are working with stack we can't use `build`.
+- Compose ignore `deploy` and Swarm ignore `build`.
+- **compose-cli** not needed on Swarm server.
+
+```yaml
+version: "3.1"
+
+services:
+  redis:
+    image: redis:alpine
+    ports: 
+      - "6379"
+    networks:
+      - frontend
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+  db:
+    image: postgres:9.4
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - backend
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+  vote:
+    image: dockersamples/examplevotingapp_vote:before
+    ports:
+      - 5000:80
+    networks:
+      - frontend
+    depends_on:
+      - redis
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 2
+      restart_policy:
+        condition: on-failure
+  result:
+    image: dockersamples/examplevotingapp_result:before
+    ports:
+      - 5001:80
+    networks:
+      - backend
+    depends_on:
+      - db
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+  worker:
+    image: dockersamples/examplevotingapp_worker
+    networks:
+      - frontend
+      - backend
+    deploy:
+      mode: replicated
+      replicas: 1
+      labels: [APP=VOTING]
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints: [node.role == manager]
+
+networks:
+  frontend:
+  backend:
+
+volumes:
+  db-data:
+```
+
+## Secret Storage for Swarm
+
+- Esiest "secure" solution for **storing secret** in Swarm.
+- What is a secret?
+  - **Usernames and Passwords**
+  - **TLS certificates and keys**
+  - **SSH keys**
+  - Any data you would prefer not be on "_front page of news_"
+- Support generic **strings or binary content** up to **500Kb** of size
+- Doesn't require app to be rewritten
+- Secrets are **first stored in Swarm**, then **assigned to a Service**(s)
+- Only containers in assigned Services can see them
+- They look like files in container but are actually in-memory a RAM file system
+  - `/run/secrets/<secret-name>` or `/run/secrets/<secret-alias>`
+- Local docker-compose can use file-base secrets but not secure
+
+### Example 
+
+`docker secret create psql_user psql_user.txt`
+- passing a file
+
+`echo "myDBpassWORD" | docker secret create psql_pass -`
+- command line method
+
+`docker secret ls`
+
+`docker secret insoect psql_user`
+
+`docker service create --name psql --secret psql_user --secret psql_pass -e POSTGRES_PASSWORD_FILE=/run/secrets/psql_pass -e POSTGRES_USER_FILE=/run/secrets/psql_user postgres`
+- create a service manually using secrets
+
+## Using Secrets with Swarm Stacks
+
+`docker stack deploy -c docker-compose.yml mydb`
+
+```yml
+version: "3.1"
+
+services:
+  psql:
+    image: postgres
+    secrets:
+      - psql_user
+      - psql_password
+    environment:
+      POSTGRES_PASSWORD_FILE: /run/secrets/psql_password
+      POSTGRES_USER_FILE: /run/secrets/psql_user
+
+secrets:
+  psql_user:
+    file: ./psql_user.txt
+  psql_password:
+    file: ./psql_password.txt
+```
